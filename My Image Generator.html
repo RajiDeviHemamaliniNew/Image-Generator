@@ -1,0 +1,1449 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+        <title>Handwritten Notes Generator</title>
+
+        <style>
+            * {
+                box-sizing: border-box;
+            }
+
+            body {
+                margin: 0;
+                font-family: Arial, sans-serif;
+                background: #eef1f5;
+                color: #222;
+            }
+
+            .app {
+                max-width: 1200px;
+                margin: 0 auto;
+                padding: 24px;
+            }
+
+            h1 {
+                margin: 0 0 18px;
+                font-size: 28px;
+            }
+
+            .layout {
+                display: grid;
+                grid-template-columns: 360px 1fr;
+                gap: 24px;
+                align-items: start;
+            }
+
+            .panel {
+                background: white;
+                border-radius: 14px;
+                padding: 20px;
+                box-shadow: 0 5px 20px rgba(0, 0, 0, 0.08);
+            }
+
+            label {
+                display: block;
+                font-weight: 700;
+                margin: 14px 0 7px;
+            }
+
+            input,
+            textarea,
+            select {
+                width: 100%;
+                border: 1px solid #ccd2da;
+                border-radius: 8px;
+                padding: 10px 12px;
+                font-size: 14px;
+                outline: none;
+            }
+
+            textarea {
+                min-height: 420px;
+                resize: vertical;
+                font-family: Consolas, monospace;
+                line-height: 1.5;
+            }
+
+            input:focus,
+            textarea:focus,
+            select:focus {
+                border-color: #4b75ff;
+            }
+
+            .row {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 10px;
+            }
+
+            button {
+                width: 100%;
+                border: 0;
+                border-radius: 9px;
+                padding: 12px;
+                margin-top: 10px;
+                font-size: 15px;
+                font-weight: 700;
+                cursor: pointer;
+            }
+
+            .primary {
+                background: #222;
+                color: white;
+            }
+
+            .secondary {
+                background: #e9edf3;
+                color: #222;
+            }
+
+            .preview-wrap {
+                display: flex;
+                justify-content: center;
+                align-items: flex-start;
+                background: #dfe4ea;
+                border-radius: 14px;
+                padding: 20px;
+                min-height: 700px;
+                overflow: auto;
+            }
+
+            canvas {
+                width: min(100%, 600px);
+                height: auto;
+                display: block;
+                background: white;
+                box-shadow: 0 8px 30px rgba(0, 0, 0, 0.18);
+            }
+
+            .hint {
+                color: #697382;
+                font-size: 12px;
+                line-height: 1.5;
+                margin-top: 10px;
+            }
+
+            .footer-signature {
+                text-align: center;
+                margin-top: 28px;
+                padding: 16px 0 8px;
+                font-size: 14px;
+                font-weight: 700;
+                letter-spacing: 0.3px;
+                background: linear-gradient(90deg, #e40303, #ff8c00, #ffed00, #008026, #004dff, #750787, #e40303);
+                -webkit-background-clip: text;
+                background-clip: text;
+                color: transparent;
+            }
+
+            @media (max-width: 850px) {
+                .layout {
+                    grid-template-columns: 1fr;
+                }
+
+                .preview-wrap {
+                    min-height: auto;
+                }
+            }
+        </style>
+    </head>
+
+    <body>
+        <div class="app">
+            <h1>✍️ Handwritten Notes Generator</h1>
+
+            <div class="layout">
+                <!-- LEFT PANEL -->
+                <div class="panel">
+                    <label for="title">Main Heading</label>
+
+                    <input id="title" value="Default Values" />
+
+                    <label for="content">Notes</label>
+
+                    <textarea id="content">
+IMPORTANT: Local variables don't get automatic default values of the datatypes.
+
+This connects to what we discussed with data types.
+
+Instance and static variables receive default values if you don't explicitly initialize them.
+
+For example:
+
+class Test {
+    int number;
+    boolean active;
+    String name;
+}
+
+Conceptually:
+
+number  → 0
+active  → false
+name    → null
+
+But local variables are different.
+
+public void test() {
+    int number;
+    System.out.println(number); // Compilation error
+}
+
+You must initialize the local variable first:
+
+int number = 10;</textarea
+                    >
+
+                    <div class="row">
+                        <div>
+                            <label for="fontSize">Font Size</label>
+
+                            <input id="fontSize" type="number" value="25" min="12" max="45" />
+                        </div>
+
+                        <div>
+                            <label for="lineHeight">Line Height</label>
+
+                            <input id="lineHeight" type="number" value="43" min="20" max="70" />
+                        </div>
+                    </div>
+
+                    <label for="handFont">Handwriting Style</label>
+
+                    <select id="handFont">
+                        <option value="Comic Sans MS">Casual Handwriting</option>
+
+                        <option value="Segoe Print">Segoe Print</option>
+
+                        <option value="Bradley Hand">Bradley Hand</option>
+
+                        <option value="Comic Sans MS">Notebook Style</option>
+                    </select>
+
+                    <button class="primary" onclick="generate()">Generate Notes</button>
+
+                    <button class="secondary" onclick="downloadPNG()">Download PNG</button>
+
+                    <button class="secondary" onclick="clearNotes()">Clear</button>
+
+                    <div class="hint">
+                        <b>Formatting rules:</b>
+                        <br />
+
+                        • Main heading → black
+                        <br />
+
+                        • Lines ending with ":" → black
+                        <br />
+
+                        • Normal content → blue
+                        <br />
+
+                        • **word** → bold black word in normal text
+                        <br />
+
+                        • Java code → IDE-style dark card with syntax colors
+                        <br />
+
+                        • Arrow lines → blue
+                        <br />
+
+                        • Blank lines → spacing
+                        <br />
+
+                        • White 4:5 canvas
+                        <br />
+
+                        • Lines beginning with "class", "public", "private", "protected", "static", "int", "boolean", "String", etc. are treated as code.
+                        <br />
+
+                        • Paste tables from Excel, Word, or the web — they render as bordered tables.
+                    </div>
+                </div>
+
+                <!-- RIGHT PANEL -->
+
+                <div class="preview-wrap">
+                    <canvas id="canvas" width="1080" height="1350"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <script>
+            const canvas = document.getElementById("canvas");
+
+            const ctx = canvas.getContext("2d");
+
+            /* =========================
+   COLORS
+========================= */
+
+            const BLACK = "#111111";
+
+            const BLUE = "#1749b5";
+
+            const CODE_BG = "#1e2433";
+
+            const CODE_HEADER = "#161b22";
+
+            const CODE_BORDER = "#30363d";
+
+            const CODE_TEXT = "#e6edf3";
+
+            const CODE_KEYWORD = "#ff79c6";
+
+            const CODE_STRING = "#7ee787";
+
+            const CODE_NUMBER = "#ffa657";
+
+            const CODE_TYPE = "#79c0ff";
+
+            const CODE_SHADOW = "rgba(15, 23, 42, 0.32)";
+
+            const CODE_ACCENT = "#6366f1";
+
+            const CODE_MONO = "Consolas, 'Courier New', monospace";
+
+            const JAVA_KEYWORDS = "public|private|protected|static|class|void|int|boolean|String|double|float|long|char|byte|short|return|if|else|for|while|do|new|this|super|null|true|false|import|package|extends|implements|interface|abstract|final|switch|case|break|continue|try|catch|throw|throws|default|enum|System";
+
+            /* =========================
+   RAINBOW TEXT
+========================= */
+
+            function rainbowColor(index, total) {
+                const hue = (index / Math.max(total - 1, 1)) * 300;
+
+                return "hsl(" + hue + ", 90%, 42%)";
+            }
+
+            function drawRainbowCenteredText(text, centerX, y, font) {
+                ctx.font = font;
+
+                ctx.textAlign = "left";
+
+                const totalWidth = ctx.measureText(text).width;
+
+                let x = centerX - totalWidth / 2;
+
+                for (let i = 0; i < text.length; i++) {
+                    const char = text[i];
+
+                    ctx.fillStyle = rainbowColor(i, text.length);
+
+                    ctx.fillText(char, x, y);
+
+                    x += ctx.measureText(char).width;
+                }
+            }
+
+            /* =========================
+   TEXT WRAPPING
+========================= */
+
+            function wrapText(text, maxWidth, font) {
+                ctx.font = font;
+
+                const words = text.split(" ");
+
+                const lines = [];
+
+                let current = "";
+
+                for (const word of words) {
+                    const test = current ? current + " " + word : word;
+
+                    if (ctx.measureText(test).width <= maxWidth) {
+                        current = test;
+                    } else {
+                        if (current) {
+                            lines.push(current);
+                        }
+
+                        current = word;
+                    }
+                }
+
+                if (current) {
+                    lines.push(current);
+                }
+
+                return lines;
+            }
+
+            /* =========================
+   INLINE BOLD (**word**)
+========================= */
+
+            function parseBoldSegments(text) {
+                const segments = [];
+
+                const regex = /\*\*([^*]+)\*\*/g;
+
+                let last = 0;
+
+                let match;
+
+                while ((match = regex.exec(text)) !== null) {
+                    if (match.index > last) {
+                        segments.push({
+                            text: text.slice(last, match.index),
+                            bold: false,
+                        });
+                    }
+
+                    segments.push({
+                        text: match[1],
+                        bold: true,
+                    });
+
+                    last = regex.lastIndex;
+                }
+
+                if (last < text.length) {
+                    segments.push({
+                        text: text.slice(last),
+                        bold: false,
+                    });
+                }
+
+                if (!segments.length) {
+                    segments.push({
+                        text: text,
+                        bold: false,
+                    });
+                }
+
+                return segments;
+            }
+
+            function fontStr(size, font, bold) {
+                return (bold ? "bold " : "") + size + "px " + font;
+            }
+
+            function tokenizeForWrap(text) {
+                const segments = parseBoldSegments(text);
+
+                const tokens = [];
+
+                for (const seg of segments) {
+                    const parts = seg.text.split(/(\s+)/);
+
+                    for (const part of parts) {
+                        if (part) {
+                            tokens.push({
+                                text: part,
+                                bold: seg.bold,
+                            });
+                        }
+                    }
+                }
+
+                return tokens;
+            }
+
+            function measureTokens(tokens, fontSize, font, lineBold) {
+                let width = 0;
+
+                for (const token of tokens) {
+                    ctx.font = fontStr(fontSize, font, lineBold || token.bold);
+
+                    width += ctx.measureText(token.text).width;
+                }
+
+                return width;
+            }
+
+            function wrapRichText(text, maxWidth, fontSize, font, lineBold) {
+                const tokens = tokenizeForWrap(text);
+
+                const lines = [];
+
+                let current = [];
+
+                for (const token of tokens) {
+                    const test = current.concat(token);
+
+                    if (measureTokens(test, fontSize, font, lineBold) <= maxWidth) {
+                        current = test;
+                    } else {
+                        if (current.length) {
+                            lines.push(current);
+                        }
+
+                        current = [token];
+                    }
+                }
+
+                if (current.length) {
+                    lines.push(current);
+                }
+
+                return lines;
+            }
+
+            function drawRichTextLine(tokens, x, y, fontSize, font, color, lineBold) {
+                let cx = x;
+
+                for (const token of tokens) {
+                    const bold = lineBold || token.bold;
+
+                    ctx.font = fontStr(fontSize, font, bold);
+
+                    ctx.fillStyle = token.bold && !lineBold ? BLACK : color;
+
+                    ctx.fillText(token.text, cx, y);
+
+                    cx += ctx.measureText(token.text).width;
+                }
+            }
+
+            /* =========================
+   BLACK / HEADING LINE
+========================= */
+
+            function isBlackLine(line) {
+                const trimmed = line.trim();
+
+                if (!trimmed) {
+                    return false;
+                }
+
+                // Lines ending with :
+                if (trimmed.endsWith(":")) {
+                    return true;
+                }
+
+                // Markdown heading
+                if (trimmed.startsWith("#")) {
+                    return true;
+                }
+
+                return false;
+            }
+
+            /* =========================
+   CODE DETECTION
+========================= */
+
+            function isCodeLine(line) {
+                const t = line.trim();
+
+                return t.startsWith("class ") ||t.startsWith("interface ")||t.startsWith("Comparator") || t.startsWith("public ") || t.startsWith("private ") || t.startsWith("protected ") || t.startsWith("static ") ||t.startsWith("abstract ") || t.startsWith("int ") || t.startsWith("boolean ") || t.startsWith("String ") || t.startsWith("void ") || t.startsWith("System.") || t.startsWith("return ") || t.startsWith("if ") || t.startsWith("if(") || t.startsWith("for ") || t.startsWith("for(") || t.startsWith("while ") || t.startsWith("while(") || t.startsWith("public class") || t.startsWith("private class") || t.startsWith("@") || t.startsWith("double") || t === "{" || t === "}" || t.endsWith(";");
+            }
+
+            /* =========================
+   DRAW ARROW
+========================= */
+
+            function drawArrow(x, y, text) {
+                ctx.fillStyle = BLUE;
+
+                ctx.font = "28px " + document.getElementById("handFont").value;
+
+                const parts = text.split("→");
+
+                if (parts.length === 2) {
+                    ctx.fillText(parts[0].trim(), x, y);
+
+                    ctx.fillText("→", x + 330, y);
+
+                    ctx.fillText(parts[1].trim(), x + 400, y);
+                } else {
+                    ctx.fillText(text, x, y);
+                }
+            }
+
+            /* =========================
+   DRAW CODE BOX
+========================= */
+
+            function fillTopRoundedRect(x, y, w, h, r, color) {
+                ctx.fillStyle = color;
+
+                ctx.beginPath();
+
+                ctx.moveTo(x + r, y);
+
+                ctx.lineTo(x + w - r, y);
+
+                ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+
+                ctx.lineTo(x + w, y + h);
+
+                ctx.lineTo(x, y + h);
+
+                ctx.lineTo(x, y + r);
+
+                ctx.quadraticCurveTo(x, y, x + r, y);
+
+                ctx.closePath();
+
+                ctx.fill();
+            }
+
+            function detectCodeLabel(lines) {
+                const text = lines.join(" ");
+
+                if (/\bclass\b/.test(text) && (/\bpublic\b/.test(text) || /\bprivate\b/.test(text))) {
+                    return "Java";
+                }
+
+                if (/\bfunction\b/.test(text) || /\bconst\b/.test(text) || /=>/.test(text)) {
+                    return "JavaScript";
+                }
+
+                if (/\bdef\b/.test(text)) {
+                    return "Python";
+                }
+
+                return "Code";
+            }
+
+            function getCodeTokenColor(type) {
+                if (type === "keyword") {
+                    return CODE_KEYWORD;
+                }
+
+                if (type === "string") {
+                    return CODE_STRING;
+                }
+
+                if (type === "number") {
+                    return CODE_NUMBER;
+                }
+
+                if (type === "type") {
+                    return CODE_TYPE;
+                }
+
+                return CODE_TEXT;
+            }
+
+            function tokenizeCodeLine(line) {
+                const regex = new RegExp(`"[^"]*"|'[^']*'|\\b(?:${JAVA_KEYWORDS})\\b|\\b\\d+\\.?\\d*\\b`, "g");
+
+                const tokens = [];
+
+                let last = 0;
+
+                let match;
+
+                while ((match = regex.exec(line)) !== null) {
+                    if (match.index > last) {
+                        tokens.push({
+                            text: line.slice(last, match.index),
+                            type: "default",
+                        });
+                    }
+
+                    const token = match[0];
+
+                    let type = "default";
+
+                    if (/^["']/.test(token)) {
+                        type = "string";
+                    } else if (/^\d/.test(token)) {
+                        type = "number";
+                    } else if (new RegExp(`^(${JAVA_KEYWORDS})$`).test(token)) {
+                        type = ["int", "boolean", "String", "double", "float", "long", "char", "byte", "short", "void"].includes(token) ? "type" : "keyword";
+                    }
+
+                    tokens.push({
+                        text: token,
+                        type: type,
+                    });
+
+                    last = regex.lastIndex;
+                }
+
+                if (last < line.length) {
+                    tokens.push({
+                        text: line.slice(last),
+                        type: "default",
+                    });
+                }
+
+                return tokens;
+            }
+
+            function drawCodeLineHighlighted(line, x, textY, fontSize) {
+                ctx.font = fontSize + "px " + CODE_MONO;
+
+                const tokens = tokenizeCodeLine(line.replace(/\t/g, "    "));
+
+                let cx = x;
+
+                tokens.forEach((token) => {
+                    ctx.fillStyle = getCodeTokenColor(token.type);
+
+                    ctx.fillText(token.text, cx, textY);
+
+                    cx += ctx.measureText(token.text).width;
+                });
+            }
+
+            function drawCodeBox(lines, x, y, width, fontSize, lineHeight) {
+                const padding = 24;
+
+                const headerHeight = 42;
+
+                const radius = 18;
+
+                const shadowPad = 8;
+
+                const codeFontSize = Math.max(fontSize - 2, 14);
+
+                const codeLineHeight = lineHeight * 0.92;
+
+                const codeAreaHeight = lines.length * codeLineHeight + padding * 2;
+
+                const boxHeight = headerHeight + codeAreaHeight;
+
+                const topY = y - 4;
+
+                ctx.save();
+
+                ctx.shadowColor = CODE_SHADOW;
+
+                ctx.shadowBlur = 24;
+
+                ctx.shadowOffsetX = 0;
+
+                ctx.shadowOffsetY = 10;
+
+                ctx.fillStyle = CODE_BG;
+
+                ctx.beginPath();
+
+                ctx.roundRect(x, topY, width, boxHeight, radius);
+
+                ctx.fill();
+
+                ctx.restore();
+
+                ctx.fillStyle = CODE_BG;
+
+                ctx.beginPath();
+
+                ctx.roundRect(x, topY, width, boxHeight, radius);
+
+                ctx.fill();
+
+                fillTopRoundedRect(x, topY, width, headerHeight, radius, CODE_HEADER);
+
+                ctx.strokeStyle = CODE_BORDER;
+
+                ctx.lineWidth = 1;
+
+                ctx.beginPath();
+
+                ctx.moveTo(x + 1, topY + headerHeight);
+
+                ctx.lineTo(x + width - 1, topY + headerHeight);
+
+                ctx.stroke();
+
+                const dotY = topY + headerHeight / 2;
+
+                const dotX = x + 20;
+
+                const dots = ["#ff5f57", "#febc2e", "#28c840"];
+
+                dots.forEach((color, index) => {
+                    ctx.beginPath();
+
+                    ctx.arc(dotX + index * 18, dotY, 5.5, 0, Math.PI * 2);
+
+                    ctx.fillStyle = color;
+
+                    ctx.fill();
+                });
+
+                ctx.font = "bold 13px Arial, sans-serif";
+
+                ctx.fillStyle = "#8b949e";
+
+                ctx.textAlign = "right";
+
+                ctx.fillText(detectCodeLabel(lines), x + width - 18, dotY + 5);
+
+                ctx.textAlign = "left";
+
+                const accentTop = topY + headerHeight + 14;
+
+                const accentHeight = Math.max(codeAreaHeight - 28, 20);
+
+                const accentGrad = ctx.createLinearGradient(x, accentTop, x, accentTop + accentHeight);
+
+                accentGrad.addColorStop(0, "#818cf8");
+
+                accentGrad.addColorStop(1, CODE_ACCENT);
+
+                ctx.fillStyle = accentGrad;
+
+                ctx.beginPath();
+
+                ctx.roundRect(x + 14, accentTop, 3, accentHeight, 2);
+
+                ctx.fill();
+
+                let textY = topY + headerHeight + padding + codeFontSize * 0.75;
+
+                const codeX = x + padding + 10;
+
+                lines.forEach((line) => {
+                    drawCodeLineHighlighted(line, codeX, textY, codeFontSize);
+
+                    textY += codeLineHeight;
+                });
+
+                ctx.strokeStyle = CODE_BORDER;
+
+                ctx.lineWidth = 1.5;
+
+                ctx.beginPath();
+
+                ctx.roundRect(x, topY, width, boxHeight, radius);
+
+                ctx.stroke();
+
+                return boxHeight + shadowPad;
+            }
+
+            /* =========================
+   TABLE HELPERS
+========================= */
+
+            function isTableSeparator(line) {
+                const trimmed = line.trim();
+
+                return /^\|?\s*:?-+:?\s*(\|\s*:?-+:?\s*)+\|?\s*$/.test(trimmed) || /^:?-+:?\s*(\|\s*:?-+:?\s*)+$/.test(trimmed);
+            }
+
+            function isTableRow(line) {
+                const trimmed = line.trim();
+
+                if (!trimmed) {
+                    return false;
+                }
+
+                if (isTableSeparator(line)) {
+                    return true;
+                }
+
+                if (trimmed.startsWith("|") && trimmed.includes("|", 1)) {
+                    return true;
+                }
+
+                if (line.includes("\t")) {
+                    const cols = line.split("\t").filter((c) => c.trim() !== "");
+
+                    return cols.length >= 2;
+                }
+
+                const pipeCount = (trimmed.match(/\|/g) || []).length;
+
+                return pipeCount >= 2;
+            }
+
+            function parseTableRow(line) {
+                if (line.includes("\t")) {
+                    return line.split("\t").map((c) => c.trim());
+                }
+
+                let trimmed = line.trim();
+
+                if (trimmed.startsWith("|")) {
+                    trimmed = trimmed.slice(1);
+                }
+
+                if (trimmed.endsWith("|")) {
+                    trimmed = trimmed.slice(0, -1);
+                }
+
+                return trimmed.split("|").map((c) => c.trim());
+            }
+
+            function htmlTableToText(html) {
+                const doc = new DOMParser().parseFromString(html, "text/html");
+
+                const table = doc.querySelector("table");
+
+                if (!table) {
+                    return null;
+                }
+
+                const rows = [];
+
+                table.querySelectorAll("tr").forEach((tr) => {
+                    const cells = [];
+
+                    tr.querySelectorAll("th, td").forEach((cell) => {
+                        cells.push(cell.textContent.replace(/\s+/g, " ").trim());
+                    });
+
+                    if (cells.length) {
+                        rows.push(cells);
+                    }
+                });
+
+                if (!rows.length) {
+                    return null;
+                }
+
+                return rows.map((row) => "| " + row.join(" | ") + " |").join("\n");
+            }
+
+            function insertAtCursor(textarea, text) {
+                const start = textarea.selectionStart;
+
+                const end = textarea.selectionEnd;
+
+                const before = textarea.value.substring(0, start);
+
+                const after = textarea.value.substring(end);
+
+                textarea.value = before + text + after;
+
+                const pos = start + text.length;
+
+                textarea.selectionStart = pos;
+
+                textarea.selectionEnd = pos;
+
+                textarea.focus();
+            }
+
+            function drawTable(rows, x, y, maxWidth, fontSize, lineHeight, font) {
+                if (!rows.length) {
+                    return 0;
+                }
+
+                const colCount = Math.max(...rows.map((r) => r.length));
+
+                const normalized = rows.map((row) => {
+                    const copy = [...row];
+
+                    while (copy.length < colCount) {
+                        copy.push("");
+                    }
+
+                    return copy;
+                });
+
+                const padding = 12;
+
+                const borderWidth = 2;
+
+                const cellFont = fontSize + "px " + font;
+
+                const headerFont = "bold " + cellFont;
+
+                ctx.font = cellFont;
+
+                const colWidths = [];
+
+                for (let c = 0; c < colCount; c++) {
+                    let maxW = 40;
+
+                    normalized.forEach((row) => {
+                        const w = ctx.measureText(row[c] || "").width;
+
+                        if (w > maxW) {
+                            maxW = w;
+                        }
+                    });
+
+                    colWidths.push(maxW + padding * 2);
+                }
+
+                let totalWidth = colWidths.reduce((a, b) => a + b, 0);
+
+                if (totalWidth > maxWidth) {
+                    const scale = maxWidth / totalWidth;
+
+                    for (let c = 0; c < colCount; c++) {
+                        colWidths[c] *= scale;
+                    }
+
+                    totalWidth = maxWidth;
+                }
+
+                const rowLayouts = normalized.map((row, rowIndex) => {
+                    const isHeader = rowIndex === 0;
+
+                    const fontStr = isHeader ? headerFont : cellFont;
+
+                    const cells = row.map((cell, colIndex) => {
+                        const maxCellW = colWidths[colIndex] - padding * 2;
+
+                        const wrapped = wrapText(cell || "", Math.max(maxCellW, 20), fontStr);
+
+                        return wrapped;
+                    });
+
+                    const maxLines = Math.max(...cells.map((c) => c.length || 1));
+
+                    const rowHeight = maxLines * lineHeight + padding * 2;
+
+                    return {
+                        cells,
+                        rowHeight,
+                        isHeader,
+                    };
+                });
+
+                const tableHeight = rowLayouts.reduce((sum, r) => sum + r.rowHeight, 0) + borderWidth * 2;
+
+                const topY = y - fontSize * 0.35;
+
+                ctx.strokeStyle = "#222";
+
+                ctx.lineWidth = borderWidth;
+
+                ctx.strokeRect(x, topY, totalWidth, tableHeight);
+
+                let rowTop = topY;
+
+                rowLayouts.forEach((layout, rowIndex) => {
+                    if (rowIndex > 0) {
+                        ctx.beginPath();
+
+                        ctx.moveTo(x, rowTop);
+
+                        ctx.lineTo(x + totalWidth, rowTop);
+
+                        ctx.stroke();
+                    }
+
+                    let cellX = x;
+
+                    let textY = rowTop + padding + fontSize * 0.75;
+
+                    layout.cells.forEach((wrapped, colIndex) => {
+                        const colW = colWidths[colIndex];
+
+                        if (colIndex > 0) {
+                            ctx.beginPath();
+
+                            ctx.moveTo(cellX, rowTop);
+
+                            ctx.lineTo(cellX, rowTop + layout.rowHeight);
+
+                            ctx.stroke();
+                        }
+
+                        ctx.fillStyle = layout.isHeader ? BLACK : BLUE;
+
+                        ctx.font = layout.isHeader ? headerFont : cellFont;
+
+                        let lineY = textY;
+
+                        wrapped.forEach((line) => {
+                            ctx.fillText(line, cellX + padding, lineY);
+
+                            lineY += lineHeight;
+                        });
+
+                        cellX += colW;
+                    });
+
+                    rowTop += layout.rowHeight;
+                });
+
+                return tableHeight + 20;
+            }
+
+            /* =========================
+   GENERATE NOTES
+========================= */
+
+            function generate() {
+                const title = document.getElementById("title").value.trim();
+
+                const text = document.getElementById("content").value;
+
+                const fontSize = Number(document.getElementById("fontSize").value);
+
+                const lineHeight = Number(document.getElementById("lineHeight").value);
+
+                const font = document.getElementById("handFont").value;
+
+                /*
+                 * =========================
+                 * CLEAR CANVAS
+                 * =========================
+                 */
+
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+                /*
+                 * WHITE BACKGROUND
+                 */
+
+                ctx.fillStyle = "#ffffff";
+
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                /*
+                 * MARGINS
+                 */
+
+                const left = 70;
+
+                const right = 70;
+
+                const maxWidth = canvas.width - left - right;
+
+                /*
+                 * =========================
+                 * MAIN HEADING
+                 * =========================
+                 */
+
+                ctx.textAlign = "center";
+
+                ctx.fillStyle = BLACK;
+
+                ctx.font = "bold 52px " + font;
+
+                ctx.fillText(title, canvas.width / 2, 85);
+
+                /*
+                 * HEADING UNDERLINE
+                 */
+
+                const titleWidth = ctx.measureText(title).width;
+
+                ctx.beginPath();
+
+                ctx.moveTo(canvas.width / 2 - titleWidth / 2, 98);
+
+                ctx.lineTo(canvas.width / 2 + titleWidth / 2, 98);
+
+                ctx.lineWidth = 3;
+
+                ctx.strokeStyle = BLACK;
+
+                ctx.stroke();
+
+                ctx.textAlign = "left";
+
+                /*
+                 * =========================
+                 * START CONTENT
+                 * =========================
+                 */
+
+                let y = 155;
+
+                const lines = text.split("\n");
+
+                /*
+                 * IMPORTANT:
+                 *
+                 * Use while loop instead
+                 * of for...of because
+                 * code blocks need to
+                 * advance multiple lines.
+                 */
+
+                let i = 0;
+
+                while (i < lines.length) {
+                    const raw = lines[i];
+
+                    const line = raw.replace(/\t/g, "    ");
+
+                    /*
+                     * =========================
+                     * BLANK LINE
+                     * =========================
+                     */
+
+                    if (!line.trim()) {
+                        y += lineHeight * 0.65;
+
+                        i++;
+
+                        continue;
+                    }
+
+                    /*
+                     * =========================
+                     * TABLE BLOCK
+                     * =========================
+                     */
+
+                    if (isTableRow(line)) {
+                        const tableRows = [];
+
+                        while (i < lines.length && isTableRow(lines[i])) {
+                            const rowLine = lines[i].trim();
+
+                            if (!isTableSeparator(rowLine)) {
+                                tableRows.push(parseTableRow(lines[i]));
+                            }
+
+                            i++;
+                        }
+
+                        const tableHeight = drawTable(tableRows, left, y, maxWidth, fontSize, lineHeight, font);
+
+                        y += tableHeight;
+
+                        continue;
+                    }
+
+                    /*
+                     * =========================
+                     * CODE BLOCK
+                     * =========================
+                     */
+
+                    if (isCodeLine(line)) {
+                        const codeLines = [];
+
+                        /*
+                         * Collect all consecutive
+                         * non-empty lines.
+                         */
+
+                        while (i < lines.length && lines[i].trim() !== "") {
+                            codeLines.push(lines[i].replace(/\t/g, "    "));
+
+                            i++;
+                        }
+
+                        /*
+                         * Draw code box
+                         */
+
+                        const boxHeight = drawCodeBox(codeLines, left, y, maxWidth, fontSize, lineHeight);
+
+                        /*
+                         * Space after code box
+                         */
+
+                        y += boxHeight + 25;
+
+                        /*
+                         * IMPORTANT:
+                         *
+                         * Do NOT i++ here.
+                         *
+                         * The inner while loop
+                         * already moved i.
+                         */
+
+                        continue;
+                    }
+
+                    /*
+                     * =========================
+                     * NORMAL CONTENT
+                     * =========================
+                     */
+
+                    const black = isBlackLine(line);
+
+                    let size = fontSize;
+
+                    /*
+                     * Slightly bigger
+                     * for headings
+                     */
+
+                    if (black) {
+                        size = fontSize + 2;
+                    }
+
+                    const currentFont = (black ? "bold " : "") + size + "px " + font;
+
+                    ctx.font = currentFont;
+
+                    ctx.fillStyle = black ? BLACK : BLUE;
+
+                    /*
+                     * Remove # from headings
+                     */
+
+                    let display = line.trim().replace(/^#+\s*/, "");
+
+                    /*
+                     * =========================
+                     * ARROW CONTENT
+                     * =========================
+                     */
+
+                    if (display.includes("→")) {
+                        drawArrow(left, y, display);
+
+                        y += lineHeight;
+
+                        i++;
+
+                        continue;
+                    }
+
+                    /*
+                     * =========================
+                     * WRAP NORMAL TEXT
+                     * =========================
+                     */
+
+                    const wrapped = wrapRichText(display, maxWidth, size, font, black);
+
+                    /*
+                     * =========================
+                     * DRAW NORMAL TEXT
+                     * =========================
+                     */
+
+                    for (const w of wrapped) {
+                        /*
+                         * Prevent overflow
+                         */
+
+                        if (y > canvas.height - 100) {
+                            ctx.font = "18px Arial";
+
+                            ctx.fillStyle = "#777";
+
+                            ctx.fillText("More content not shown — reduce font size.", left, canvas.height - 30);
+
+                            return;
+                        }
+
+                        drawRichTextLine(w, left, y, size, font, black ? BLACK : BLUE, black);
+
+                        y += lineHeight;
+                    }
+
+                    /*
+                     * Move to next line
+                     */
+
+                    i++;
+                }
+
+                /*
+                 * FOOTER SIGNATURE
+                 */
+
+                drawRainbowCenteredText("Happy Learning with RDTechs18", canvas.width / 2, canvas.height - 38, "22px " + font);
+
+                ctx.textAlign = "left";
+            }
+
+            /* =========================
+   DOWNLOAD PNG
+========================= */
+
+            function downloadPNG() {
+                const link = document.createElement("a");
+
+                link.download = "handwritten-notes-4x5.png";
+
+                link.href = canvas.toDataURL("image/png");
+
+                link.click();
+            }
+
+            /* =========================
+   CLEAR NOTES
+========================= */
+
+            function clearNotes() {
+                document.getElementById("title").value = "";
+
+                document.getElementById("content").value = "";
+
+                generate();
+            }
+
+            /* =========================
+   AUTO GENERATE ON CHANGE
+========================= */
+
+            let generateTimer = null;
+
+            function scheduleGenerate() {
+                clearTimeout(generateTimer);
+
+                generateTimer = setTimeout(generate, 150);
+            }
+
+            ["title", "content", "fontSize", "lineHeight", "handFont"].forEach((id) => {
+                const el = document.getElementById(id);
+
+                el.addEventListener("input", scheduleGenerate);
+
+                el.addEventListener("change", scheduleGenerate);
+            });
+
+            /* =========================
+   PASTE TABLE SUPPORT
+========================= */
+
+            document.getElementById("content").addEventListener("paste", function (e) {
+                const html = e.clipboardData.getData("text/html");
+
+                if (html && html.includes("<table")) {
+                    const tableText = htmlTableToText(html);
+
+                    if (tableText) {
+                        e.preventDefault();
+
+                        insertAtCursor(this, tableText);
+
+                        scheduleGenerate();
+
+                        return;
+                    }
+                }
+
+                const plain = e.clipboardData.getData("text/plain");
+
+                if (plain && plain.includes("\t")) {
+                    const tableLines = plain.split("\n").filter((line) => line.includes("\t"));
+
+                    if (tableLines.length >= 2) {
+                        e.preventDefault();
+
+                        const tableText = plain
+                            .split("\n")
+                            .map((line) => {
+                                if (!line.includes("\t")) {
+                                    return line;
+                                }
+
+                                return (
+                                    "| " +
+                                    line
+                                        .split("\t")
+                                        .map((c) => c.trim())
+                                        .join(" | ") +
+                                    " |"
+                                );
+                            })
+                            .join("\n");
+
+                        insertAtCursor(this, tableText);
+
+                        scheduleGenerate();
+                    }
+                }
+            });
+
+            /* =========================
+   INITIAL GENERATION
+========================= */
+
+            generate();
+        </script>
+    </body>
+</html>
